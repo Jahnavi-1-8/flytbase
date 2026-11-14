@@ -22,12 +22,10 @@ export const Question1BookWorth: React.FC<Question1BookWorthProps> = ({
 }) => {
   const { bookWorth, account } = state;
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(val);
+  const formatCurrency = (val: number) => {
+    const symbol = account.key === "B" ? "€" : "£";
+    return `${symbol}${val.toLocaleString()}`;
+  };
 
   return (
     <section className="space-y-6">

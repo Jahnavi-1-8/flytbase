@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { CRMNote, LiveSignal } from "@/types/crm";
+import defaultAccounts from "./default-accounts.json";
 
 export interface MCPDiskStore {
   version: number;
@@ -28,13 +29,12 @@ export interface MCPDiskStore {
 
 const CACHE_DIR = path.join(process.cwd(), ".cache");
 const CACHE_FILE = path.join(CACHE_DIR, "mcp-store.json");
-const REAL_ACCOUNTS_FILE = path.join(CACHE_DIR, "real-accounts.json");
 
 let memoryStore: MCPDiskStore = {
   version: 2,
   lastCallTimestamp: null,
-  lastSyncTimestamp: null,
-  accounts: null,
+  lastSyncTimestamp: Date.now(),
+  accounts: defaultAccounts,
   paperworkA: null,
   paperworkB: null,
   featureRequests: null,
@@ -54,20 +54,12 @@ export function getMCPStore(): MCPDiskStore {
       memoryStore = { ...memoryStore, ...parsed };
     }
   } catch (err) {
-    console.warn("Could not read .cache/mcp-store.json:", (err as Error).message);
+    console.warn("Could not read .cache/mcp-store.json, using in-memory store:", (err as Error).message);
   }
 
-  // If store.accounts is not yet in mcp-store.json but real-accounts.json was fetched, load it
+  // Ensure accounts is never null on cold start
   if (!memoryStore.accounts) {
-    try {
-      if (fs.existsSync(REAL_ACCOUNTS_FILE)) {
-        const raw = fs.readFileSync(REAL_ACCOUNTS_FILE, "utf-8");
-        memoryStore.accounts = JSON.parse(raw);
-        saveMCPStore(memoryStore);
-      }
-    } catch {
-      // ignore
-    }
+    memoryStore.accounts = defaultAccounts;
   }
 
   return memoryStore;
@@ -81,7 +73,7 @@ export function saveMCPStore(store: MCPDiskStore): void {
     }
     fs.writeFileSync(CACHE_FILE, JSON.stringify(store, null, 2), "utf-8");
   } catch (err) {
-    console.warn("Could not persist to .cache/mcp-store.json:", (err as Error).message);
+    console.warn("Could not persist to .cache/mcp-store.json (running on serverless?):", (err as Error).message);
   }
 }
 
